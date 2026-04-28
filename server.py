@@ -1,132 +1,101 @@
 """
-Data Converter MCP Server
-Convert between JSON, CSV, and other formats - no external APIs
+Text Utilities MCP Server
+Simple text manipulation tools - no external dependencies
 Compatible with static pipeline entrypoint.py
 """
 
 from fastmcp import FastMCP
-import json
-import csv
-import io
-import base64
-import os
 
-# Initialize FastMCP server
-mcp = FastMCP("Data Converter MCP")
+# Initialize FastMCP server (entrypoint.py will handle transport)
+mcp = FastMCP("Text Utilities MCP")
 
 @mcp.tool()
-def json_to_csv(json_data: str) -> dict:
+def reverse_text(text: str) -> str:
     """
-    Convert JSON array to CSV format.
+    Reverse any text string.
     
     Args:
-        json_data: JSON string (must be array of objects)
+        text: The text to reverse
     
     Returns:
-        CSV string or error
+        Reversed text string
     """
-    try:
-        data = json.loads(json_data)
-        if not isinstance(data, list) or not data:
-            return {"error": "JSON must be a non-empty array of objects"}
-        
-        output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
-        
-        return {"csv": output.getvalue()}
-    except Exception as e:
-        return {"error": f"Conversion failed: {str(e)}"}
+    return text[::-1]
 
 @mcp.tool()
-def csv_to_json(csv_data: str) -> dict:
+def count_words(text: str) -> dict:
     """
-    Convert CSV format to JSON array.
+    Count words, characters, and lines in text.
     
     Args:
-        csv_data: CSV string with headers
+        text: The text to analyze
     
     Returns:
-        JSON array or error
+        Dictionary with word count, character count, and line count
     """
-    try:
-        input_stream = io.StringIO(csv_data)
-        reader = csv.DictReader(input_stream)
-        result = list(reader)
-        
-        return {"json": json.dumps(result, indent=2)}
-    except Exception as e:
-        return {"error": f"Conversion failed: {str(e)}"}
+    lines = text.split('\n')
+    words = text.split()
+    chars = len(text)
+    
+    return {
+        "words": len(words),
+        "characters": chars,
+        "lines": len(lines),
+        "characters_no_spaces": len(text.replace(" ", "").replace("\n", ""))
+    }
 
 @mcp.tool()
-def format_json(json_data: str, indent: int = 2) -> dict:
+def to_uppercase(text: str) -> str:
     """
-    Pretty-print JSON with specified indentation.
+    Convert text to uppercase.
     
     Args:
-        json_data: JSON string to format
-        indent: Number of spaces for indentation (default: 2)
+        text: Text to convert
     
     Returns:
-        Formatted JSON or error
+        Uppercase text
     """
-    try:
-        data = json.loads(json_data)
-        formatted = json.dumps(data, indent=indent, sort_keys=False)
-        return {"formatted_json": formatted}
-    except Exception as e:
-        return {"error": f"Invalid JSON: {str(e)}"}
+    return text.upper()
 
 @mcp.tool()
-def minify_json(json_data: str) -> dict:
+def to_lowercase(text: str) -> str:
     """
-    Remove whitespace from JSON (minify).
+    Convert text to lowercase.
     
     Args:
-        json_data: JSON string to minify
+        text: Text to convert
     
     Returns:
-        Minified JSON or error
+        Lowercase text
     """
-    try:
-        data = json.loads(json_data)
-        minified = json.dumps(data, separators=(',', ':'))
-        return {"minified_json": minified}
-    except Exception as e:
-        return {"error": f"Invalid JSON: {str(e)}"}
+    return text.lower()
 
 @mcp.tool()
-def encode_base64(text: str) -> str:
+def title_case(text: str) -> str:
     """
-    Encode text to base64.
+    Convert text to title case (capitalize first letter of each word).
     
     Args:
-        text: Text to encode
+        text: Text to convert
     
     Returns:
-        Base64 encoded string
+        Title cased text
     """
-    encoded = base64.b64encode(text.encode('utf-8')).decode('utf-8')
-    return encoded
+    return text.title()
 
 @mcp.tool()
-def decode_base64(encoded: str) -> dict:
+def remove_extra_spaces(text: str) -> str:
     """
-    Decode base64 to text.
+    Remove extra whitespace and normalize spacing.
     
     Args:
-        encoded: Base64 encoded string
+        text: Text with extra spaces
     
     Returns:
-        Decoded text or error
+        Text with normalized spacing
     """
-    try:
-        decoded = base64.b64decode(encoded).decode('utf-8')
-        return {"decoded": decoded}
-    except Exception as e:
-        return {"error": f"Decoding failed: {str(e)}"}
+    return ' '.join(text.split())
 
 if __name__ == "__main__":
-    # Run with SSE transport (FastMCP native HTTP support)
-    mcp.run(transport="sse", host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+    # Run with stdio transport (supergateway will wrap it)
+    mcp.run()
